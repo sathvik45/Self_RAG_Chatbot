@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+ragenv/
+.venv/
+venv/
+
+# Secrets / local env
+.env
+.env.local
+
+# Logs and local scratch output
+*.log
+
+# Built index (regenerated from data/ at startup or Docker build time)
+storage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local tool state (not part of the project)
+.claude/

@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: pytest tests/ -v
+
+  docker-build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: selfrag:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test the image
+        run: |
+          docker run -d --name selfrag-smoke -p 8000:8000 selfrag:ci
+          ok=""
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:8000/health; then ok=1; break; fi
+            sleep 3
+          done
+          if [ -z "$ok" ]; then
+            echo "container never became healthy"
+            docker logs selfrag-smoke
+            exit 1
+          fi
+          docker stop selfrag-smoke
+
+  # Publishes the image to GHCR on every merge to main. Works out of the box
+  # with the repo's built-in GITHUB_TOKEN - no secrets to set up. If pushes
+  # get a permissions error, enable "Read and write permissions" for the
+  # GITHUB_TOKEN under Settings > Actions > General > Workflow permissions.
+  publish:
+    needs: docker-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Optional: auto-deploy to a Hugging Face Space (Docker SDK) on every merge
+  # to main. Skipped automatically until you set these up:
+  #   1. Create a Space at huggingface.co/new-space with SDK = Docker.
+  #   2. Add repo secrets: HF_TOKEN (a HF token with write access to the Space)
+  #      and HF_SPACE (e.g. "your-username/your-space-name").
+  deploy-hf-space:
+    needs: docker-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.HF_SPACE != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          git remote add space "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}"
+          git push --force space HEAD:main

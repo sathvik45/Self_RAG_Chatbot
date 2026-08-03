@@ -1,0 +1,14 @@
+{"question": "What is the minimum password length required by the information security policy?", "expected_keywords": ["14"], "category": "information-security"}
+{"question": "Is multi-factor authentication required to access production systems?", "expected_keywords": ["multi-factor", "MFA"], "category": "information-security", "keyword_mode": "any"}
+{"question": "Within how many hours must affected individuals be notified after a personal data breach?", "expected_keywords": ["72"], "category": "data-privacy"}
+{"question": "Which privacy regulations does the data privacy policy reference?", "expected_keywords": ["GDPR", "CCPA"], "category": "data-privacy"}
+{"question": "Who can install software on a company-managed device under the acceptable use policy?", "expected_keywords": ["IT"], "category": "acceptable-use"}
+{"question": "How should remote employees connect to company systems instead of using untrusted public Wi-Fi?", "expected_keywords": ["VPN"], "category": "remote-work"}
+{"question": "How can an employee report a suspected ethics violation confidentially?", "expected_keywords": ["hotline"], "category": "code-of-conduct"}
+{"question": "Is retaliation against someone who reports harassment in good faith allowed?", "expected_keywords": ["retaliation"], "category": "anti-harassment"}
+{"question": "How soon after a high or critical security incident is a post-incident review conducted?", "expected_keywords": ["5 business days", "5"], "category": "incident-response", "keyword_mode": "any"}
+{"question": "How long are financial and tax records retained?", "expected_keywords": ["7 years", "seven years"], "category": "data-retention", "keyword_mode": "any"}
+{"question": "What system must a personal device be enrolled in before accessing company email under the BYOD policy?", "expected_keywords": ["MDM", "mobile device management"], "category": "byod", "keyword_mode": "any"}
+{"question": "What certification should a Tier 1 vendor provide during the security review?", "expected_keywords": ["SOC 2"], "category": "vendor-risk"}
+{"question": "Hey, how's it going today?", "expected_keywords": [], "category": "smalltalk", "expect_retrieval": false}
+{"question": "What is the company's current stock price?", "expected_keywords": [], "category": "not-covered", "expect_answer_declines": true}
