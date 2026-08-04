@@ -151,13 +151,22 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
 
-      - name: Build and push image
-        env:
-          IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/selfrag/selfrag
-        run: |
-          docker build -t "$IMAGE:${{ github.sha }}" .
-          docker push "$IMAGE:${{ github.sha }}"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/selfrag/selfrag:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Explicit --memory/--cpu because Cloud Run's default (512Mi/1 vCPU) is
+      # too small to load torch + the embedding model - without this the
+      # container OOMs during startup and "fails to listen on PORT", which
+      # looks like a port misconfiguration but isn't.
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
@@ -166,4 +175,4 @@ jobs:
           image: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/selfrag/selfrag:${{ github.sha }}
           env_vars: |
             GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
-          flags: --port=8000 --allow-unauthenticated --min-instances=0 --max-instances=1
+          flags: --port=8000 --memory=2Gi --cpu=2 --timeout=300 --allow-unauthenticated --min-instances=0 --max-instances=1
