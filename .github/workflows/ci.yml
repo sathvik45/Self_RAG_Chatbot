@@ -154,12 +154,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Only ever push :latest, overwriting the previous image, instead of
+      # keeping a SHA-tagged image per deploy forever. Artifact Registry's
+      # free tier is 0.5GB and this image is ~3GB, so an unbounded history
+      # would rack up real storage cost for no benefit on a demo project.
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/selfrag/selfrag:${{ github.sha }}
+          tags: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/selfrag/selfrag:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -172,7 +176,7 @@ jobs:
         with:
           service: selfrag
           region: ${{ vars.GCP_REGION }}
-          image: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/selfrag/selfrag:${{ github.sha }}
+          image: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/selfrag/selfrag:latest
           env_vars: |
             GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
           flags: --port=8000 --memory=2Gi --cpu=2 --timeout=300 --allow-unauthenticated --min-instances=0 --max-instances=1
